@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expiry Graph Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <p class="eyebrow">Kitchen helper: By GamED Labs</p>
+      <h1>Expiry Graph Tracker</h1>
+      <p class="subtitle">Add food + expiry code. The graph shows what is expired and what is still safe.</p>
+    </section>
+
+    <section class="panel form-panel">
+      <form id="expiry-form" class="input-grid">
+        <div class="field">
+          <label for="food-name">Food Name</label>
+          <input id="food-name" name="foodName" type="text" placeholder="Greek Yogurt" required />
+        </div>
+        <div class="field">
+          <label for="expiry-code">Expiry Code / Date</label>
+          <input
+            id="expiry-code"
+            name="expiryCode"
+            type="text"
+            placeholder="2026-03-20, 20/03/2026, 03/26, 20260320"
+            required
+          />
+        </div>
+        <button type="submit" class="btn-primary">Add To Graph</button>
+      </form>
+      <p class="hint">Accepted formats: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, YYYYMMDD, MM/YYYY, MM/YY</p>
+      <p id="message" class="message hidden" aria-live="polite"></p>
+    </section>
+
+    <section class="panel">
+      <div class="stats" id="stats"></div>
+      <div id="graph" class="graph" aria-live="polite"></div>
+      <div class="graph-legend">
+        <span><i class="dot dot-expired"></i>Expired</span>
+        <span><i class="dot dot-soon"></i>Expiring soon</span>
+        <span><i class="dot dot-fresh"></i>Fresh</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="table-head">
+        <h2>All Foods</h2>
+        <button id="clear-all" class="btn-ghost" type="button">Clear All</button>
+      </div>
+      <div id="table-wrap"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
