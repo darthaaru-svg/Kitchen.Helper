@@ -2,10 +2,9 @@ const DB_NAME = "expiry_graph_tracker_db";
 const DB_VERSION = 1;
 const STORE_NAME = "foods";
 const LEGACY_STORAGE_KEY = "expiry_graph_tracker_items_v1";
+const AI_ENDPOINT = "https://kitchen-helper.vercel.app/api/scan-fridge";
 
 // IMPORTANT: replace with your real vercel domain
-const AI_ENDPOINT = "https://YOUR-VERCEL-PROJECT.vercel.app/api/scan-fridge";
-
 const form = document.getElementById("expiry-form");
 const graphElement = document.getElementById("graph");
 const tableWrap = document.getElementById("table-wrap");
