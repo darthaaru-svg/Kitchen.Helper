@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/scan-fridge.js": {
+      "runtime": "nodejs20.x"
+    }
+  }
+}
