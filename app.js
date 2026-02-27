@@ -189,16 +189,16 @@ function renderDetected(itemsDetected) {
 }
 
 async function scanFridgeImage(file) {
-  const body = new FormData();
-  body.append("image", file);
+  const imageDataUrl = await fileToDataUrl(file);
 
-  const response = await fetch("/api/scan-fridge", {
+  const response = await fetch("https://YOUR-VERCEL-PROJECT.vercel.app/api/scan-fridge", {
     method: "POST",
-    body
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageDataUrl })
   });
 
   if (!response.ok) {
-    throw new Error("AI endpoint unavailable. Deploy backend /api/scan-fridge first.");
+    throw new Error("AI endpoint unavailable");
   }
 
   const data = await response.json();
@@ -207,6 +207,16 @@ async function scanFridgeImage(file) {
     .filter((x) => x && typeof x.name === "string")
     .map((x) => ({ name: x.name.trim(), confidence: Number(x.confidence) || 0 }));
 }
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.readAsDataURL(file);
+  });
+}
+
 
 function buildRowModel(item) {
   const expiryDate = new Date(item.expiryISO);
