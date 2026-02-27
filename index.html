@@ -11,7 +11,7 @@
     <section class="hero">
       <p class="eyebrow">Kitchen helper: By GamED Labs</p>
       <h1>Expiry Graph Tracker</h1>
-      <p class="subtitle">Add food + expiry code. The graph shows what is expired and what is still safe.</p>
+      <p class="subtitle">Track food expiry dates and scan fridge photos with AI.</p>
     </section>
 
     <section class="panel form-panel">
@@ -32,8 +32,18 @@
         </div>
         <button type="submit" class="btn-primary">Add To Graph</button>
       </form>
-      <p class="hint">Accepted formats: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, YYYYMMDD, MM/YYYY, MM/YY</p>
+      <p class="hint">Accepted: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, YYYYMMDD, MM/YYYY, MM/YY</p>
       <p id="message" class="message hidden" aria-live="polite"></p>
+    </section>
+
+    <section class="panel">
+      <h2>AI Fridge Scan</h2>
+      <p class="hint">Upload a fridge photo. AI will suggest food names you can add quickly.</p>
+      <div class="scan-row">
+        <input id="fridge-image" type="file" accept="image/*" />
+        <button id="scan-btn" class="btn-primary" type="button">Scan Fridge</button>
+      </div>
+      <div id="detected-list" class="detected-list"></div>
     </section>
 
     <section class="panel">
