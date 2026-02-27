@@ -403,3 +403,5 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 }
+fetch("https://<your-vercel-project>.vercel.app/api/scan-fridge", ...)
+
