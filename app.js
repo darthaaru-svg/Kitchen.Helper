@@ -3,6 +3,9 @@ const DB_VERSION = 1;
 const STORE_NAME = "foods";
 const LEGACY_STORAGE_KEY = "expiry_graph_tracker_items_v1";
 
+// IMPORTANT: replace with your real vercel domain
+const AI_ENDPOINT = "https://YOUR-VERCEL-PROJECT.vercel.app/api/scan-fridge";
+
 const form = document.getElementById("expiry-form");
 const graphElement = document.getElementById("graph");
 const tableWrap = document.getElementById("table-wrap");
@@ -64,31 +67,33 @@ tableWrap.addEventListener("click", async (event) => {
   render();
 });
 
-scanButton.addEventListener("click", async () => {
-  const file = imageInput.files && imageInput.files[0];
-  if (!file) return showMessage("Choose a fridge image first.", "error");
+if (scanButton && imageInput && detectedList) {
+  scanButton.addEventListener("click", async () => {
+    const file = imageInput.files && imageInput.files[0];
+    if (!file) return showMessage("Choose a fridge image first.", "error");
 
-  try {
-    scanButton.disabled = true;
-    scanButton.textContent = "Scanning...";
-    const detected = await scanFridgeImage(file);
-    renderDetected(detected);
-    showMessage("Scan complete. Add detected items below.", "success");
-  } catch (error) {
-    showMessage(error.message || "Fridge scan failed.", "error");
-  } finally {
-    scanButton.disabled = false;
-    scanButton.textContent = "Scan Fridge";
-  }
-});
+    try {
+      scanButton.disabled = true;
+      scanButton.textContent = "Scanning...";
+      const detected = await scanFridgeImage(file);
+      renderDetected(detected);
+      showMessage("Scan complete. Click Use to fill a food name.", "success");
+    } catch (error) {
+      showMessage(error.message || "Fridge scan failed.", "error");
+    } finally {
+      scanButton.disabled = false;
+      scanButton.textContent = "Scan Fridge";
+    }
+  });
 
-detectedList.addEventListener("click", (event) => {
-  const button = event.target.closest("button[data-food]");
-  if (!button) return;
-  form.foodName.value = button.getAttribute("data-food");
-  form.expiryCode.focus();
-  showMessage("Now enter expiry date/code and click Add To Graph.", "success");
-});
+  detectedList.addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-food]");
+    if (!btn) return;
+    form.foodName.value = btn.getAttribute("data-food");
+    form.expiryCode.focus();
+    showMessage("Now enter expiry code/date and click Add To Graph.", "success");
+  });
+}
 
 initializeApp();
 
@@ -108,9 +113,9 @@ function render() {
 }
 
 function renderStats(rows) {
-  const expired = rows.filter((r) => r.status.type === "expired").length;
-  const soon = rows.filter((r) => r.status.type === "soon" || r.status.type === "today").length;
-  const fresh = rows.filter((r) => r.status.type === "fresh").length;
+  const expired = rows.filter((row) => row.status.type === "expired").length;
+  const soon = rows.filter((row) => row.status.type === "soon" || row.status.type === "today").length;
+  const fresh = rows.filter((row) => row.status.type === "fresh").length;
 
   statsElement.innerHTML = `
     <article class="stat"><div class="label">Total foods</div><div class="value">${rows.length}</div></article>
@@ -125,22 +130,24 @@ function renderGraph(rows) {
     return;
   }
 
-  const maxAbsDays = Math.max(7, ...rows.map((r) => Math.abs(r.status.daysLeft)));
+  const maxAbsDays = Math.max(7, ...rows.map((row) => Math.abs(row.status.daysLeft)));
 
-  graphElement.innerHTML = rows.map((row) => {
-    const widthPct = Math.max(6, Math.min(100, (Math.abs(row.status.daysLeft) / maxAbsDays) * 100));
-    const typeClass = row.status.type === "today" ? "soon" : row.status.type;
-    return `
-      <article class="bar-row">
-        <div class="bar-top">
-          <strong>${escapeHtml(row.foodName)}</strong>
-          <span class="bar-date">${row.formattedDate}</span>
-        </div>
-        <div class="track"><div class="fill ${typeClass}" style="width:${widthPct}%"></div></div>
-        <div class="bar-meta">${escapeHtml(row.status.text)}</div>
-      </article>
-    `;
-  }).join("");
+  graphElement.innerHTML = rows
+    .map((row) => {
+      const widthPct = Math.max(6, Math.min(100, (Math.abs(row.status.daysLeft) / maxAbsDays) * 100));
+      const typeClass = row.status.type === "today" ? "soon" : row.status.type;
+      return `
+        <article class="bar-row">
+          <div class="bar-top">
+            <strong>${escapeHtml(row.foodName)}</strong>
+            <span class="bar-date">${row.formattedDate}</span>
+          </div>
+          <div class="track"><div class="fill ${typeClass}" style="width: ${widthPct}%"></div></div>
+          <div class="bar-meta">${escapeHtml(row.status.text)}</div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderTable(rows) {
@@ -152,60 +159,79 @@ function renderTable(rows) {
   tableWrap.innerHTML = `
     <table>
       <thead>
-        <tr><th>Food</th><th>Expiry date</th><th>Status</th><th>Action</th></tr>
+        <tr>
+          <th>Food</th>
+          <th>Expiry date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
       </thead>
       <tbody>
-        ${rows.map((row) => {
-          const pillClass = row.status.type === "today" ? "soon" : row.status.type;
-          return `
-            <tr>
-              <td>${escapeHtml(row.foodName)}</td>
-              <td>${row.formattedDate}</td>
-              <td><span class="pill ${pillClass}">${escapeHtml(row.status.short)}</span></td>
-              <td class="row-actions"><button type="button" data-remove-id="${row.id}">Remove</button></td>
-            </tr>
-          `;
-        }).join("")}
+        ${rows
+          .map((row) => {
+            const pillClass = row.status.type === "today" ? "soon" : row.status.type;
+            return `
+              <tr>
+                <td>${escapeHtml(row.foodName)}</td>
+                <td>${row.formattedDate}</td>
+                <td><span class="pill ${pillClass}">${escapeHtml(row.status.short)}</span></td>
+                <td class="row-actions">
+                  <button type="button" data-remove-id="${row.id}">Remove</button>
+                </td>
+              </tr>
+            `;
+          })
+          .join("")}
       </tbody>
     </table>
   `;
 }
 
 function renderDetected(itemsDetected) {
+  if (!detectedList) return;
   if (!itemsDetected.length) {
     detectedList.innerHTML = `<div class="empty">No foods confidently detected.</div>`;
     return;
   }
 
-  detectedList.innerHTML = itemsDetected.map((item) => `
-    <div class="detected-item">
-      <div>
-        <strong>${escapeHtml(item.name)}</strong>
-        <span class="hint"> (${Math.round((item.confidence || 0) * 100)}%)</span>
+  detectedList.innerHTML = itemsDetected
+    .map(
+      (item) => `
+      <div class="detected-item">
+        <div>
+          <strong>${escapeHtml(item.name)}</strong>
+          <span class="hint"> (${Math.round((item.confidence || 0) * 100)}%)</span>
+        </div>
+        <button type="button" data-food="${escapeHtml(item.name)}">Use</button>
       </div>
-      <button type="button" data-food="${escapeHtml(item.name)}">Use</button>
-    </div>
-  `).join("");
+    `
+    )
+    .join("");
 }
 
 async function scanFridgeImage(file) {
   const imageDataUrl = await fileToDataUrl(file);
 
-  const response = await fetch("https://YOUR-VERCEL-PROJECT.vercel.app/api/scan-fridge", {
+  const response = await fetch(AI_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ imageDataUrl })
   });
 
   if (!response.ok) {
-    throw new Error("AI endpoint unavailable");
+    const text = await response.text().catch(() => "");
+    throw new Error(`AI endpoint unavailable: ${response.status} ${text}`);
   }
 
   const data = await response.json();
   if (!Array.isArray(data.items)) return [];
+
   return data.items
     .filter((x) => x && typeof x.name === "string")
-    .map((x) => ({ name: x.name.trim(), confidence: Number(x.confidence) || 0 }));
+    .map((x) => ({
+      name: x.name.trim(),
+      confidence: Number(x.confidence) || 0
+    }));
 }
 
 function fileToDataUrl(file) {
@@ -216,7 +242,6 @@ function fileToDataUrl(file) {
     reader.readAsDataURL(file);
   });
 }
-
 
 function buildRowModel(item) {
   const expiryDate = new Date(item.expiryISO);
@@ -260,7 +285,9 @@ function parseExpiryCode(raw) {
 }
 
 function safeDate(year, month, day, endOfMonth) {
-  const y = Number(year), m = Number(month), d = Number(day);
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
   if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null;
   if (m < 1 || m > 12) return null;
 
@@ -285,6 +312,7 @@ function getExpiryStatus(expiryDate) {
       text: ago === 0 ? "Expired today" : `Expired ${ago} day${ago === 1 ? "" : "s"} ago`
     };
   }
+
   if (daysLeft <= 0) return { type: "today", daysLeft: 0, short: "Today", text: "Expires today" };
   if (daysLeft <= 7) return { type: "soon", daysLeft, short: "Soon", text: `Expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}` };
   return { type: "fresh", daysLeft, short: "Fresh", text: `Expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}` };
@@ -302,6 +330,7 @@ async function persistItems() {
     localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(items));
     return;
   }
+
   await dbClearAll(db);
   for (const item of items) await dbPut(db, item);
 }
@@ -309,6 +338,7 @@ async function persistItems() {
 async function loadItems() {
   const db = await dbReady;
   if (!db) return loadLegacyItems();
+
   try {
     const stored = await dbGetAll(db);
     if (stored.length) return sanitizeItems(stored);
@@ -336,26 +366,28 @@ function loadLegacyItems() {
 
 function sanitizeItems(input) {
   if (!Array.isArray(input)) return [];
-  return input.filter((item) =>
-    item &&
-    typeof item.id === "string" &&
-    typeof item.foodName === "string" &&
-    typeof item.expiryCode === "string" &&
-    typeof item.expiryISO === "string"
+  return input.filter(
+    (item) =>
+      item &&
+      typeof item.id === "string" &&
+      typeof item.foodName === "string" &&
+      typeof item.expiryCode === "string" &&
+      typeof item.expiryISO === "string"
   );
 }
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
     if (!window.indexedDB) return reject(new Error("IndexedDB unsupported"));
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
     };
+
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -403,5 +435,3 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 }
-fetch("https://<your-vercel-project>.vercel.app/api/scan-fridge", ...)
-
